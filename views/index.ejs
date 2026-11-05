@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Data Curation Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        gray: {
+                            750: '#2d3748',
+                            850: '#1a202c',
+                            900: '#171923',
+                            950: '#0d0e12',
+                        },
+                        brand: {
+                            500: '#6366f1', // Indigo 500
+                            600: '#4f46e5', // Indigo 600
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for a premium look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #171923; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; 
+        }
+        
+        /* Fade in animation for tab switching */
+        .fade-in {
+            animation: fadeIn 0.25s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .htmx-indicator-spin.htmx-request {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Bar Partial -->
+    <%- include('partials/nav') %>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative">
+        
+        <!-- ================= LOGIN VIEW ================= -->
+        <!-- Server hides this if user is already logged in via session -->
+        <div id="login-view" class="h-full flex items-center justify-center p-6 fade-in overflow-y-auto<% if (currentUser) { %> hidden<% } %>">
+            <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                <div class="text-center mb-8">
+                    <div class="inline-flex p-3 rounded-2xl bg-brand-500/10 text-brand-400 mb-3 border border-brand-500/20">
+                        <i class="ph ph-lock-key text-3xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+                    <p class="text-gray-400 text-sm">Sign in to continue data curation &amp; verification.</p>
+                </div>
+
+                <!-- HTMX posts credentials; server validates and sets session -->
+                <form id="login-form"
+                      hx-post="/auth/login"
+                      hx-target="#login-error"
+                      hx-swap="innerHTML"
+                      hx-indicator="#login-spinner"
+                      class="space-y-5">
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                        <div class="relative">
+                            <i class="ph ph-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" name="username" id="login-user"
+                                   required autocomplete="username"
+                                   placeholder="Enter your username"
+                                   class="w-full bg-gray-850 border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 pl-10 p-2.5 outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                        <div class="relative">
+                            <i class="ph ph-lock-key absolute left-3 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                            <input type="password" name="password" id="login-password"
+                                   required autocomplete="current-password"
+                                   placeholder="••••••••"
+                                   class="w-full bg-gray-850 border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 pl-10 p-2.5 outline-none transition-colors">
+                        </div>
+                    </div>
+
+                    <!-- Error feedback area (populated by HTMX on 401) -->
+                    <div id="login-error"></div>
+
+                    <button type="submit"
+                            class="w-full text-white bg-brand-600 hover:bg-brand-500 focus:ring-4 focus:outline-none focus:ring-brand-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all shadow-lg shadow-brand-500/20 flex items-center justify-center gap-2">
+                        <i id="login-spinner" class="ph ph-circle-notch text-lg htmx-indicator-spin"></i>
+                        Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= KNOWLEDGE BASE LISTING ================= -->
+        <% if (currentUser && activePage === 'list') { %>
+            <%- include('partials/kb-list') %>
+        <% } %>
+
+        <!-- ================= REVIEW WORKSPACE ================= -->
+        <% if (currentUser && activePage === 'review') { %>
+            <% const showAdminView = currentUser.role === 'admin' && activeTab === 'admin'; %>
+            <div id="reviewer-view" class="h-full<%= showAdminView ? ' hidden' : '' %>">
+                <%- include('partials/reviewer-pane') %>
+            </div>
+
+            <% if (currentUser.role === 'admin') { %>
+                <div id="admin-view" class="h-full<%= showAdminView ? '' : ' hidden' %>">
+                    <%- include('partials/admin-view') %>
+                </div>
+            <% } %>
+        <% } %>
+
+    </main>
+
+    <!-- Global Toast Container for HTMX Responses -->
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 pointer-events-none flex flex-col gap-2"></div>
+
+    <!-- UI Scripts -->
+    <script>
+        // ─── Top-level View Switching (Review Queue <-> Admin Approval) ───────
+        function switchTab(tabId, btn) {
+            ['login-view', 'reviewer-view', 'admin-view'].forEach(id => {
+                document.getElementById(id)?.classList.add('hidden');
+            });
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('bg-gray-700', 'text-white', 'shadow-sm');
+                b.classList.add('text-gray-400');
+            });
+            document.getElementById(tabId)?.classList.remove('hidden');
+            if (btn) {
+                btn.classList.add('bg-gray-700', 'text-white', 'shadow-sm');
+                btn.classList.remove('text-gray-400');
+            }
+        }
+
+        // ─── Log Out ──────────────────────────────────────────────────────────
+        function signOut() {
+            window.location.href = '/auth/logout';
+        }
+
+        // ─── Render HTMX error fragments (e.g. toast partials on 4xx) ─────────
+        document.body.addEventListener('htmx:beforeSwap', function (evt) {
+            const status = evt.detail.xhr.status;
+            if (status >= 400 && status < 500) {
+                evt.detail.shouldSwap = true;
+                evt.detail.isError = false;
+            }
+        });
+
+        // ─── Admin Subtab Switching ───────────────────────────────────────────
+        function switchAdminSubtab(sectionId, btn) {
+            document.querySelectorAll('.admin-section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.admin-nav-btn').forEach(b => {
+                b.classList.remove('bg-brand-500/10', 'text-brand-400');
+                b.classList.add('text-gray-400');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            if (btn) {
+                btn.classList.add('bg-brand-500/10', 'text-brand-400');
+                btn.classList.remove('text-gray-400');
+            }
+        }
+
+        // ─── Toast Helper ─────────────────────────────────────────────────────
+        function showClientToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'bg-brand-600/90 border border-brand-500 text-white px-5 py-3 rounded-xl shadow-xl fade-in flex items-center gap-2 backdrop-blur-md pointer-events-auto text-sm';
+            toast.innerHTML = '<i class="ph ph-check-circle text-lg"></i> <span>' + msg + '</span>';
+            document.getElementById('toast-container').appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ─── HTMX: update user count after table mutations ───────────────────
+        document.body.addEventListener('htmx:afterOnLoad', function() {
+            const countEl = document.getElementById('user-count');
+            if (countEl) {
+                countEl.innerText = document.querySelectorAll('#user-table-body tr').length;
+            }
+        });
+    </script>
+</body>
+</html>

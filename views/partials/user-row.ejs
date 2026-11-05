@@ -1,0 +1,44 @@
+<!-- User Row Partial -->
+<tr class="hover:bg-gray-800/50 transition-colors group" id="user-row-<%= user.id %>">
+    <td class="px-6 py-4 flex items-center gap-3">
+        <% 
+           const initials = user.username ? user.username.substring(0, 2).toUpperCase() : 'US';
+           const isAdmin = user.role === 'admin';
+        %>
+        <div class="w-8 h-8 rounded <%= isAdmin ? 'bg-brand-500/20 text-brand-400 border-brand-500/30' : 'bg-gray-700 text-gray-300 border-gray-600' %> flex items-center justify-center font-bold text-xs border">
+            <%= initials %>
+        </div>
+        <div>
+            <div class="font-medium text-gray-200"><%= user.username %></div>
+            <div class="text-xs text-gray-500">
+                Joined <%= new Date(user.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) %>
+            </div>
+        </div>
+    </td>
+    <td class="px-6 py-4">
+        <!-- HTMX: Updates role on change -->
+        <select hx-put="/api/admin/users/<%= user.id %>/role"
+                name="role"
+                hx-swap="none"
+                class="bg-gray-850 border border-gray-700 text-gray-300 text-xs rounded focus:ring-brand-500 focus:border-brand-500 block p-1.5 outline-none appearance-none cursor-pointer group-hover:border-gray-600 transition-colors">
+            <option value="admin" <%= user.role === 'admin' ? 'selected' : '' %>>Administrator</option>
+            <option value="reviewer" <%= user.role === 'reviewer' ? 'selected' : '' %>>Reviewer</option>
+        </select>
+    </td>
+    <td class="px-6 py-4">
+        <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20">
+            <%= user.status || 'Active' %>
+        </span>
+    </td>
+    <td class="px-6 py-4 text-right">
+        <!-- HTMX: Deletes user and removes table row -->
+        <button hx-delete="/api/admin/users/<%= user.id %>"
+                hx-target="#user-row-<%= user.id %>"
+                hx-swap="outerHTML"
+                hx-confirm="Are you sure you want to delete user <%= user.username %>?"
+                class="text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10"
+                title="Delete User">
+            <i class="ph ph-trash text-lg"></i>
+        </button>
+    </td>
+</tr>

@@ -1,0 +1,72 @@
+<!-- Navigation Bar Partial -->
+<%
+    const isLoggedIn = !!currentUser;
+    const isAdmin    = isLoggedIn && currentUser.role === 'admin';
+    const isReviewer = isLoggedIn && currentUser.role === 'reviewer';
+    const roleLabel  = isAdmin ? 'Administrator' : 'Reviewer';
+%>
+<nav class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between z-10 flex-shrink-0 shadow-md">
+    <!-- Left: Brand -->
+    <div class="flex items-center gap-3">
+        <div class="bg-brand-500 p-2 rounded-lg text-white shadow-lg shadow-brand-500/30">
+            <i class="ph ph-database text-xl"></i>
+        </div>
+        <div>
+            <h1 class="text-xl font-bold tracking-tight text-white leading-none">LLM Data Curation</h1>
+            <span class="text-[10px] text-brand-400 font-mono tracking-wider uppercase">Knowledge Base Curation Suite</span>
+        </div>
+    </div>
+
+    <!-- Center: Role-based nav (hidden until logged in) -->
+    <div id="nav-tabs" class="<%= isLoggedIn ? 'flex' : 'hidden' %> items-center bg-gray-850 p-1 rounded-lg border border-gray-800">
+        <%
+            const onList   = activePage === 'list';
+            const onReview = activePage === 'review';
+            const activeCls   = 'bg-gray-700 text-white shadow-sm';
+            const inactiveCls = 'text-gray-400 hover:text-white';
+        %>
+        <!-- Knowledge base listing: available to everyone signed in -->
+        <a href="/"
+           class="nav-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 <%= onList ? activeCls : inactiveCls %>">
+            <i class="ph ph-database text-brand-500 mr-1"></i> Knowledge Bases
+        </a>
+
+        <% if (isAdmin) { %>
+            <!-- For admins the approval workspace is also the review page -->
+            <a href="/review"
+               class="nav-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 <%= onReview ? activeCls : inactiveCls %>">
+                <i class="ph ph-shield-check text-emerald-400 mr-1"></i> Review &amp; Approval
+                <span id="nav-pending-badge" class="ml-1 px-1.5 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] rounded-full border border-emerald-500/30"><%= pendingCount || 0 %></span>
+            </a>
+        <% } else { %>
+            <!-- Review queue: reviewers -->
+            <a href="/review"
+               class="nav-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 <%= onReview ? activeCls : inactiveCls %>">
+                <i class="ph ph-pencil-simple text-brand-500 mr-1"></i> Review Queue
+            </a>
+        <% } %>
+    </div>
+
+    <!-- Right: User info + Sign Out (hidden until logged in) -->
+    <div class="flex items-center gap-3">
+        <!-- Shown when logged OUT -->
+        <div id="nav-guest" class="<%= isLoggedIn ? 'hidden' : 'flex' %> items-center gap-2 text-gray-500 text-sm">
+            <i class="ph ph-user-circle text-xl"></i>
+            <span>Guest</span>
+        </div>
+
+        <!-- Shown when logged IN -->
+        <div id="nav-user" class="<%= isLoggedIn ? 'flex' : 'hidden' %> items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-brand-600/20 border border-brand-500/40 flex items-center justify-center text-brand-400">
+                <i class="ph ph-user text-sm"></i>
+            </div>
+            <div class="hidden sm:block text-left">
+                <span class="text-sm font-medium text-gray-200 block leading-tight" id="current-user-display"><%= isLoggedIn ? currentUser.username : '' %></span>
+                <span class="text-[10px] text-gray-500 block leading-none" id="current-role-display"><%= isLoggedIn ? roleLabel : '' %></span>
+            </div>
+            <button onclick="signOut()" class="ml-1 flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-400 bg-gray-800 hover:bg-red-500/10 border border-gray-700 hover:border-red-500/30 px-2.5 py-1.5 rounded-lg transition-all">
+                <i class="ph ph-sign-out"></i> Log Out
+            </button>
+        </div>
+    </div>
+</nav>

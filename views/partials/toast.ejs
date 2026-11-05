@@ -1,0 +1,22 @@
+<!-- Toast Notification Partial -->
+<div class="fixed bottom-6 right-6 <%= type === 'error' ? 'bg-red-600/90 border-red-500' : 'bg-emerald-600/90 border-emerald-500' %> border text-white px-6 py-4 rounded-xl shadow-2xl fade-in flex items-center gap-3 backdrop-blur-md z-50 transition-all duration-300"
+     id="toast-<%= Date.now() %>">
+    <i class="ph <%= type === 'error' ? 'ph-warning-circle' : 'ph-check-circle' %> text-2xl"></i>
+    <div>
+        <div class="font-medium text-sm"><%= title || (type === 'error' ? 'Error' : 'Success') %></div>
+        <div class="text-xs text-white/80"><%= message %></div>
+    </div>
+    <button onclick="this.parentElement.remove()" class="ml-2 text-white/70 hover:text-white">
+        <i class="ph ph-x text-sm"></i>
+    </button>
+    <script>
+        setTimeout(() => {
+            const el = document.getElementById('toast-<%= Date.now() %>');
+            if (el) {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(10px)';
+                setTimeout(() => el.remove(), 300);
+            }
+        }, 3500);
+    </script>
+</div>

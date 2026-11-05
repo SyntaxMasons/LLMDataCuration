@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Data Curation Dashboard</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        gray: {
+                            750: '#2d3748',
+                            850: '#1a202c',
+                            900: '#171923',
+                            950: '#0d0e12',
+                        },
+                        brand: {
+                            500: '#6366f1', // Indigo 500
+                            600: '#4f46e5', // Indigo 600
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for a premium look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #171923; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; 
+        }
+        
+        /* Fade in animation for tab switching */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 h-screen flex flex-col overflow-hidden selection:bg-brand-500 selection:text-white">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between z-10 flex-shrink-0 shadow-md">
+        <div class="flex items-center gap-3">
+            <div class="bg-brand-500 p-2 rounded-lg text-white">
+                <i class="ph ph-database text-xl"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-white">Nexus Curate</h1>
+        </div>
+        
+        <div class="flex items-center bg-gray-850 p-1 rounded-lg border border-gray-800">
+            <button onclick="switchTab('login-view', this)" class="nav-btn px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 bg-gray-700 text-white shadow-sm" data-target="login-view">
+                <i class="ph ph-sign-in mr-1"></i> Login
+            </button>
+            <button onclick="switchTab('reviewer-view', this)" class="nav-btn px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-md transition-all duration-200" data-target="reviewer-view">
+                <i class="ph ph-pencil-simple text-brand-500 mr-1"></i> Reviewer Queue
+            </button>
+            <button onclick="switchTab('admin-view', this)" class="nav-btn px-4 py-2 text-sm font-medium text-gray-400 hover:text-white rounded-md transition-all duration-200" data-target="admin-view">
+                <i class="ph ph-shield-check text-emerald-400 mr-1"></i> Admin Approval
+            </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center">
+                <i class="ph ph-user text-gray-400"></i>
+            </div>
+            <span class="text-sm font-medium text-gray-300 hidden sm:block" id="current-user-display">Guest</span>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 overflow-hidden relative">
+        
+        <!-- ================= LOGIN VIEW ================= -->
+        <div id="login-view" class="h-full flex items-center justify-center p-6 fade-in overflow-y-auto">
+            <div class="bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl p-8 w-full max-w-md">
+                <div class="text-center mb-8">
+                    <h2 class="text-2xl font-bold text-white mb-2">Welcome Back</h2>
+                    <p class="text-gray-400 text-sm">Sign in to continue data curation.</p>
+                </div>
+                
+                <form id="login-form" onsubmit="handleLogin(event)" class="space-y-5">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Username</label>
+                        <div class="relative">
+                            <i class="ph ph-user absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="text" id="login-user" required placeholder="admin or reviewer" class="w-full bg-gray-850 border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block pl-10 p-2.5 outline-none transition-colors">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">Password</label>
+                        <div class="relative">
+                            <i class="ph ph-lock-key absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                            <input type="password" required placeholder="••••••••" class="w-full bg-gray-850 border border-gray-700 text-gray-100 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block pl-10 p-2.5 outline-none transition-colors">
+                        </div>
+                    </div>
+                    <button type="submit" class="w-full text-white bg-brand-600 hover:bg-brand-500 focus:ring-4 focus:outline-none focus:ring-brand-500/50 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all shadow-lg shadow-brand-500/20">
+                        Sign In
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- ================= REVIEWER VIEW ================= -->
+        <div id="reviewer-view" class="h-full p-4 lg:p-6 hidden fade-in">
+            <div class="flex flex-col lg:flex-row gap-6 h-full">
+                
+                <!-- Left Pane: Raw HTML / Context -->
+                <div class="w-full lg:w-1/2 bg-gray-900 border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-lg">
+                    <div class="bg-gray-850 border-b border-gray-800 px-4 py-3 flex justify-between items-center shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-code text-gray-400"></i>
+                            <span class="text-sm font-semibold text-gray-200">Source Context: kb_arch_092.html</span>
+                        </div>
+                        <span class="bg-amber-500/20 text-amber-400 text-xs px-2 py-1 rounded border border-amber-500/30">Needs Extraction</span>
+                    </div>
+                    <div class="p-6 overflow-y-auto flex-1 font-sans text-gray-300 leading-relaxed bg-[#0b0c10]">
+                        <!-- Mock Rendered HTML -->
+                        <div class="prose prose-invert max-w-none">
+                            <h2 class="text-2xl font-bold text-white mb-4 border-b border-gray-800 pb-2">System Architecture Overview</h2>
+                            <p class="mb-4">
+                                The core infrastructure is orchestrated via a central API Gateway which routes all incoming client requests to the appropriate microservices. The microservices operate in an isolated VPC.
+                            </p>
+                            <p class="mb-4">
+                                All read operations are cached heavily using a Redis cluster to reduce latency, while write operations are persisted directly to the primary PostgreSQL database cluster in a highly available configuration.
+                            </p>
+                            <!-- Mock Image -->
+                            <div class="my-6 border border-gray-700 rounded-xl overflow-hidden bg-gray-800 p-2">
+                                <div class="bg-gray-900 rounded-lg p-4 flex justify-center items-center relative group">
+                                    <img src="https://placehold.co/800x400/1e293b/94a3b8?text=System+Architecture+Diagram\n(API+Gateway+->+Microservices+->+PostgreSQL)" alt="System Architecture Diagram" class="max-w-full h-auto rounded shadow-sm opacity-90 transition-opacity group-hover:opacity-100">
+                                </div>
+                                <p class="text-xs text-center text-gray-500 mt-2 italic">Figure 1.1: Request routing and data persistence flow.</p>
+                            </div>
+                            <p>
+                                Note: In the event of a Redis node failure, the application will fallback to direct database querying, potentially increasing response times by up to 300ms.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Pane: Q&A Input Form -->
+                <div class="w-full lg:w-1/2 bg-gray-900 border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-lg">
+                    <div class="bg-gray-850 border-b border-gray-800 px-4 py-3 flex justify-between items-center shrink-0">
+                        <div class="flex items-center gap-2">
+                            <i class="ph ph-chat-teardrop-text text-brand-400"></i>
+                            <span class="text-sm font-semibold text-gray-200">Distilled Q&A Generation</span>
+                        </div>
+                        <span class="text-xs text-gray-500">JSONL Format Preview</span>
+                    </div>
+                    
+                    <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+                        <div class="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm text-brand-200 flex gap-3">
+                            <i class="ph ph-info mt-0.5 text-brand-400 text-lg"></i>
+                            <p>Review and edit the AI-generated <strong>Multi-Turn</strong> Q&A pairs below. Ensure they accurately reflect the HTML context on the left.</p>
+                        </div>
+
+                        <form id="qa-form" onsubmit="submitQA(event)" class="flex flex-col gap-4 flex-1 h-full mt-2">
+                            <!-- Multi-Turn Container -->
+                            <div class="flex-1 overflow-y-auto space-y-4 pr-2 min-h-[300px]" id="chat-container">
+                                
+                                <!-- System Prompt -->
+                                <div class="bg-gray-850 border border-gray-700 rounded-lg p-4 space-y-3 shadow-sm">
+                                    <label class="block text-xs font-bold text-gray-400 mb-1 flex items-center gap-1.5 uppercase tracking-wider"><i class="ph ph-terminal-window text-lg"></i> System Prompt</label>
+                                    <textarea required rows="2" class="w-full bg-gray-900 border border-gray-700 text-gray-300 text-sm rounded-md focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none resize-none transition-colors">You are a helpful technical support assistant. Answer the user's question accurately using only the provided HTML context.</textarea>
+                                </div>
+
+                                <!-- Turn 1 -->
+                                <div class="bg-gray-850 border border-gray-700 rounded-lg p-4 space-y-4 relative group shadow-sm">
+                                    <div class="flex justify-between items-center border-b border-gray-700/50 pb-2">
+                                        <span class="text-xs font-bold text-brand-400 uppercase tracking-wider flex items-center gap-2"><i class="ph ph-chats text-base"></i> Turn 1</span>
+                                    </div>
+                                    
+                                    <!-- User Context & Question -->
+                                    <div>
+                                        <label class="block text-xs font-medium text-brand-300 mb-1 flex items-center gap-1.5"><i class="ph ph-user"></i> User Prompt (with HTML Context)</label>
+                                        <textarea required rows="3" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-sm rounded-md focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none resize-none transition-colors">Context HTML: <html>...[Contains Arch_Diagram.png]...</html>
+    
+Question: Based on the architecture overview, how are read and write operations handled?</textarea>
+                                    </div>
+                                    
+                                    <!-- AI Assistant Answer -->
+                                    <div class="pt-2 border-t border-gray-800/50">
+                                        <div class="flex justify-between items-center mb-2">
+                                            <label class="block text-xs font-medium text-purple-400 flex items-center gap-1.5"><i class="ph ph-robot"></i> Assistant Answer</label>
+                                            
+                                            <!-- Regenerate Button -->
+                                            <button type="button" onclick="this.querySelector('i').classList.add('animate-spin'); setTimeout(() => this.querySelector('i').classList.remove('animate-spin'), 1000);" class="text-xs flex items-center gap-1.5 text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1.5 rounded transition-all border border-purple-500/20 shadow-sm font-medium">
+                                                <i class="ph ph-arrows-clockwise text-sm"></i> Regenerate Answer
+                                            </button>
+                                        </div>
+                                        <textarea required rows="3" class="w-full bg-gray-900 border border-purple-900/30 text-gray-100 text-sm rounded-md focus:ring-purple-500 focus:border-purple-500 block p-2.5 outline-none resize-none transition-colors">Read operations are cached heavily using a Redis cluster to reduce latency, while write operations are persisted directly to the primary PostgreSQL database cluster.</textarea>
+                                    </div>
+                                </div>
+                                
+                                <!-- Add Follow Up Button -->
+                                <button type="button" class="w-full py-3.5 border-2 border-dashed border-gray-700 text-gray-400 rounded-lg hover:border-brand-500 hover:text-brand-400 bg-gray-800/30 hover:bg-gray-800/80 transition-all text-sm flex justify-center items-center gap-2 font-medium mt-4">
+                                    <i class="ph ph-plus-circle text-lg"></i> Add Follow-up Question
+                                </button>
+                            </div>
+
+                            <!-- Footer Actions -->
+                            <div class="pt-4 border-t border-gray-800 flex justify-end gap-3 mt-auto shrink-0 bg-gray-900">
+                                <button type="button" onclick="document.getElementById('qa-form').reset()" class="px-4 py-2.5 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-colors">
+                                    Clear Form
+                                </button>
+                                <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-500 focus:ring-4 focus:outline-none focus:ring-brand-500/50 shadow-lg shadow-brand-500/20 transition-all flex items-center gap-2">
+                                    <i class="ph ph-paper-plane-right"></i> Submit for Approval
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= ADMIN VIEW ================= -->
+        <div id="admin-view" class="h-full hidden fade-in">
+            <div class="flex h-full">
+                
+                <!-- Admin Sidebar -->
+                <div class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
+                    <div class="p-5 border-b border-gray-800">
+                        <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <i class="ph ph-sliders"></i> Admin Controls
+                        </h2>
+                    </div>
+                    <div class="p-3 flex-1 space-y-1">
+                        <button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                            <i class="ph ph-check-square-offset text-lg"></i> Approval Queue
+                        </button>
+                        <button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                            <i class="ph ph-export text-lg"></i> Export Data
+                        </button>
+                        <button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg bg-brand-500/10 text-brand-400 transition-colors">
+                            <i class="ph ph-users text-lg"></i> User Management
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Admin Main Content: User Management -->
+                <div class="flex-1 p-6 lg:p-10 overflow-y-auto bg-[#0b0c10]">
+                    <div class="max-w-5xl mx-auto space-y-8">
+                        
+                        <!-- Header -->
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">User Management</h2>
+                            <p class="text-gray-400 text-sm mt-1">Add, remove, and manage access levels for your curation team.</p>
+                        </div>
+
+                        <!-- Add New User Card -->
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-sm">
+                            <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2"><i class="ph ph-user-plus text-brand-400 text-lg"></i> Create New Account</h3>
+                            
+                            <!-- HTMX Form Blueprint: Will post to Axum and append the new user to the table body -->
+                            <form hx-post="/api/admin/users" hx-target="#user-table-body" hx-swap="beforeend" onsubmit="simulateAddUser(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Username</label>
+                                    <input type="text" id="new-username" required placeholder="e.g. data_reviewer_1" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Temporary Password</label>
+                                    <input type="password" id="new-password" required placeholder="••••••••" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-gray-400 mb-1">Authorization Role</label>
+                                    <select id="new-role" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none appearance-none cursor-pointer">
+                                        <option value="reviewer">Reviewer</option>
+                                        <option value="admin">Administrator</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <button type="submit" class="w-full text-white bg-brand-600 hover:bg-brand-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all flex justify-center items-center gap-2">
+                                        <i class="ph ph-plus-circle text-lg"></i> Add User
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Existing Users Table -->
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl shadow-sm overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-850">
+                                <h3 class="text-sm font-semibold text-white">Active Accounts</h3>
+                                <div class="relative">
+                                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500"></i>
+                                    <input type="text" placeholder="Search users..." class="bg-gray-900 border border-gray-700 text-gray-300 text-xs rounded-md focus:ring-brand-500 focus:border-brand-500 block pl-9 p-1.5 outline-none">
+                                </div>
+                            </div>
+                            
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left text-gray-400">
+                                    <thead class="text-xs text-gray-500 uppercase bg-gray-900/50 border-b border-gray-800">
+                                        <tr>
+                                            <th scope="col" class="px-6 py-3 font-medium">User Profile</th>
+                                            <th scope="col" class="px-6 py-3 font-medium">Role / Access</th>
+                                            <th scope="col" class="px-6 py-3 font-medium">Status</th>
+                                            <th scope="col" class="px-6 py-3 font-medium text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="user-table-body" class="divide-y divide-gray-800">
+                                        
+                                        <!-- User Row 1 (Admin) -->
+                                        <tr class="hover:bg-gray-800/50 transition-colors group">
+                                            <td class="px-6 py-4 flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded bg-brand-500/20 text-brand-400 flex items-center justify-center font-bold text-xs border border-brand-500/30">
+                                                    AB
+                                                </div>
+                                                <div>
+                                                    <div class="font-medium text-gray-200">admin_bago</div>
+                                                    <div class="text-xs text-gray-500">Joined Oct 10, 2026</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <!-- HTMX: Updates role on change -->
+                                                <select hx-put="/api/admin/users/1/role" hx-swap="none" class="bg-gray-850 border border-gray-700 text-gray-300 text-xs rounded focus:ring-brand-500 focus:border-brand-500 block p-1.5 outline-none appearance-none cursor-pointer group-hover:border-gray-600 transition-colors">
+                                                    <option value="admin" selected>Administrator</option>
+                                                    <option value="reviewer">Reviewer</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20">Active</span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <!-- HTMX: Deletes user and removes table row -->
+                                                <button hx-delete="/api/admin/users/1" hx-target="closest tr" hx-swap="outerHTML" onclick="this.closest('tr').remove()" class="text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10">
+                                                    <i class="ph ph-trash text-lg"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+
+                                        <!-- User Row 2 (Reviewer) -->
+                                        <tr class="hover:bg-gray-800/50 transition-colors group">
+                                            <td class="px-6 py-4 flex items-center gap-3">
+                                                <div class="w-8 h-8 rounded bg-gray-700 text-gray-300 flex items-center justify-center font-bold text-xs border border-gray-600">
+                                                    MR
+                                                </div>
+                                                <div>
+                                                    <div class="font-medium text-gray-200">masticn_user</div>
+                                                    <div class="text-xs text-gray-500">Joined Oct 22, 2026</div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <select hx-put="/api/admin/users/2/role" hx-swap="none" class="bg-gray-850 border border-gray-700 text-gray-300 text-xs rounded focus:ring-brand-500 focus:border-brand-500 block p-1.5 outline-none appearance-none cursor-pointer group-hover:border-gray-600 transition-colors">
+                                                    <option value="admin">Administrator</option>
+                                                    <option value="reviewer" selected>Reviewer</option>
+                                                </select>
+                                            </td>
+                                            <td class="px-6 py-4">
+                                                <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20">Active</span>
+                                            </td>
+                                            <td class="px-6 py-4 text-right">
+                                                <button hx-delete="/api/admin/users/2" hx-target="closest tr" hx-swap="outerHTML" onclick="this.closest('tr').remove()" class="text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10">
+                                                    <i class="ph ph-trash text-lg"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- UI Logic -->
+    <script>
+        // Tab switching logic
+        function switchTab(tabId, btn) {
+            // Hide all views
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('reviewer-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.add('hidden');
+            
+            // Reset all nav buttons
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('bg-gray-700', 'text-white', 'shadow-sm');
+                b.classList.add('text-gray-400');
+            });
+            
+            // Show target view
+            document.getElementById(tabId).classList.remove('hidden');
+            
+            // Highlight active button
+            btn.classList.add('bg-gray-700', 'text-white', 'shadow-sm');
+            btn.classList.remove('text-gray-400');
+        }
+
+        // Handle Login Simulation
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value;
+            document.getElementById('current-user-display').innerText = user;
+            
+            // Simulate routing based on role
+            const targetTab = user.toLowerCase() === 'admin' ? 'admin-view' : 'reviewer-view';
+            const targetBtn = document.querySelector(`.nav-btn[data-target="${targetTab}"]`);
+            switchTab(targetTab, targetBtn);
+        }
+
+        // Handle Data Submission (No Alerts!)
+        function submitQA(e) {
+            e.preventDefault();
+            // Create a custom modern toast notification
+            const notification = document.createElement('div');
+            notification.className = 'fixed bottom-6 right-6 bg-emerald-600/90 border border-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl fade-in flex items-center gap-3 backdrop-blur-md z-50';
+            notification.innerHTML = '<i class="ph ph-check-circle text-2xl"></i> <span class="font-medium">Data successfully submitted for Admin approval!</span>';
+            document.body.appendChild(notification);
+            
+            // Remove smoothly after 3 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateY(10px)';
+                notification.style.transition = 'all 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Simulate Add User for UI Preview (Fallback for static HTML)
+        function simulateAddUser(e) {
+            e.preventDefault();
+            const username = document.getElementById('new-username').value;
+            const role = document.getElementById('new-role').value;
+            const initials = username.substring(0, 2).toUpperCase();
+            
+            const tbody = document.getElementById('user-table-body');
+            const newRow = document.createElement('tr');
+            newRow.className = 'hover:bg-gray-800/50 transition-colors group fade-in';
+            newRow.innerHTML = `
+                <td class="px-6 py-4 flex items-center gap-3">
+                    <div class="w-8 h-8 rounded bg-gray-700 text-gray-300 flex items-center justify-center font-bold text-xs border border-gray-600">
+                        ${initials}
+                    </div>
+                    <div>
+                        <div class="font-medium text-gray-200">${username}</div>
+                        <div class="text-xs text-gray-500">Joined Just Now</div>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <select class="bg-gray-850 border border-gray-700 text-gray-300 text-xs rounded focus:ring-brand-500 focus:border-brand-500 block p-1.5 outline-none appearance-none cursor-pointer group-hover:border-gray-600 transition-colors">
+                        <option value="admin" ${role === 'admin' ? 'selected' : ''}>Administrator</option>
+                        <option value="reviewer" ${role === 'reviewer' ? 'selected' : ''}>Reviewer</option>
+                    </select>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="bg-emerald-500/10 text-emerald-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-emerald-500/20">Active</span>
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button onclick="this.closest('tr').remove()" class="text-gray-500 hover:text-red-400 transition-colors p-1.5 rounded hover:bg-red-500/10">
+                        <i class="ph ph-trash text-lg"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(newRow);
+            e.target.reset();
+        }
+    </script>
+</body>
+</html>

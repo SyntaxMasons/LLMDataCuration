@@ -1,0 +1,26 @@
+{
+  "name": "llm-data-curation",
+  "version": "1.0.0",
+  "description": "Centralized web application to curate, review, and export AI training datasets from raw HTML knowledge bases",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test:db": "node test-db.mjs",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:stop": "pm2 stop ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart ecosystem.config.cjs",
+    "pm2:logs": "pm2 logs llm-data-curation"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^18.0.9",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.19.0",
+    "sanitize-html": "^2.13.1",
+    "sequelize": "^6.37.3",
+    "sqlite3": "^5.1.7"
+  }
+}

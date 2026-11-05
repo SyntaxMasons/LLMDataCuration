@@ -1,0 +1,171 @@
+<!-- Reviewer Side-by-Side View Partial -->
+<%
+    const isAdminUser = !!(currentUser && currentUser.role === 'admin');
+    const pendingApprovalCount = Array.isArray(pendingQAs) ? pendingQAs.length : 0;
+%>
+<div class="h-full p-4 lg:p-6 fade-in">
+    <div class="flex flex-col lg:flex-row gap-6 h-full">
+        
+        <!-- Left Pane: Raw HTML / Context -->
+        <div class="w-full lg:w-1/2 bg-gray-900 border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-lg">
+            <div class="bg-gray-850 border-b border-gray-800 px-4 py-3 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-code text-gray-400"></i>
+                    <span class="text-sm font-semibold text-gray-200">Source Context: <span id="doc-filename-display"><%= document ? document.filename : 'No Document Selected' %></span></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="bg-amber-500/20 text-amber-400 text-xs px-2 py-1 rounded border border-amber-500/30">
+                        <%= document ? document.status.replace('_', ' ').toUpperCase() : 'NEEDS EXTRACTION' %>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Knowledge Base switcher -->
+            <div class="bg-gray-900 px-4 py-2 border-b border-gray-800 flex items-center justify-between text-xs">
+                <span class="text-gray-400">Switch Knowledge Base:</span>
+                <div class="flex items-center gap-2">
+                    <select onchange="window.location.href='/review?docId=' + this.value" class="bg-gray-800 border border-gray-700 text-gray-200 rounded px-2 py-1 outline-none text-xs">
+                        <% if (documents && documents.length > 0) { %>
+                            <% documents.forEach(doc => { %>
+                                <option value="<%= doc.id %>" <%= (document && document.id === doc.id) ? 'selected' : '' %>>
+                                    <%= doc.title ? doc.title + ' — ' : '' %><%= doc.filename %>
+                                </option>
+                            <% }) %>
+                        <% } else { %>
+                            <option>No documents</option>
+                        <% } %>
+                    </select>
+                    <a href="/" class="text-brand-400 hover:text-brand-300 font-medium flex items-center gap-1">
+                        <i class="ph ph-arrow-left"></i> All KBs
+                    </a>
+                </div>
+            </div>
+
+            <!-- Mock Rendered HTML Container -->
+            <div class="p-6 overflow-y-auto flex-1 font-sans text-gray-300 leading-relaxed bg-[#0b0c10]" id="rendered-html-container">
+                <% if (document && document.rawHtml) { %>
+                    <%- document.rawHtml %>
+                <% } else { %>
+                    <div class="text-center text-gray-500 py-12">
+                        <i class="ph ph-file-dashed text-4xl mb-2"></i>
+                        <p>No document content available.</p>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+
+        <!-- Right Pane: Q&A Input Form -->
+        <div class="w-full lg:w-1/2 bg-gray-900 border border-gray-800 rounded-2xl flex flex-col overflow-hidden shadow-lg">
+            <div class="bg-gray-850 border-b border-gray-800 px-4 py-3 flex justify-between items-center shrink-0">
+                <div class="flex items-center gap-2">
+                    <i class="ph ph-chat-teardrop-text text-brand-400"></i>
+                    <span class="text-sm font-semibold text-gray-200">Distilled Q&A Generation</span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <% if (isAdminUser) { %>
+                        <a href="/review?tab=admin"
+                           class="text-[11px] font-medium text-amber-400 hover:text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 px-2.5 py-1 rounded transition-colors flex items-center gap-1.5">
+                            <i class="ph ph-check-square-offset"></i>
+                            Pending Approvals (<%= pendingApprovalCount %>)
+                        </a>
+                    <% } %>
+                    <span class="text-xs text-gray-500">JSONL Format Preview</span>
+                </div>
+            </div>
+            
+            <div class="p-6 overflow-y-auto flex-1 flex flex-col gap-5">
+                <div class="bg-brand-500/10 border border-brand-500/20 rounded-lg p-4 text-sm text-brand-200 flex gap-3">
+                    <i class="ph ph-info mt-0.5 text-brand-400 text-lg"></i>
+                    <% if (isAdminUser) { %>
+                        <p>As an administrator your edits are <strong>approved immediately</strong> — no separate approval step. Review the HTML context on the left, then click <strong>Approve &amp; Finalize</strong>.</p>
+                    <% } else { %>
+                        <p>Review and edit the AI-generated <strong>Multi-Turn</strong> Q&amp;A pairs below. Ensure they accurately reflect the HTML context on the left.</p>
+                    <% } %>
+                </div>
+
+                <!-- HTMX Submission Form -->
+                <form id="qa-form"
+                      hx-post="/api/qa/submit"
+                      hx-target="#toast-container"
+                      hx-swap="beforeend"
+                      class="flex flex-col gap-4 flex-1 h-full mt-2">
+                    
+                    <input type="hidden" name="documentId" id="current-document-id" value="<%= document ? document.id : '' %>">
+                    <input type="hidden" name="qaPairId" value="<%= activeQA ? activeQA.id : '' %>">
+
+                    <!-- Multi-Turn Container -->
+                    <div class="flex-1 overflow-y-auto space-y-4 pr-2 min-h-[300px]" id="chat-container">
+                        
+                        <!-- System Prompt -->
+                        <div class="bg-gray-850 border border-gray-700 rounded-lg p-4 space-y-3 shadow-sm">
+                            <div class="flex items-center justify-between gap-2">
+                                <label class="block text-xs font-bold text-gray-400 flex items-center gap-1.5 uppercase tracking-wider">
+                                    <i class="ph ph-terminal-window text-lg"></i> System Prompt
+                                </label>
+                                <button type="button"
+                                        hx-post="/api/qa/regenerate-system-prompt"
+                                        hx-include="#current-document-id"
+                                        hx-vals='js:{previousPrompt: document.querySelector("#system-prompt-container textarea[name=systemPrompt]").value}'
+                                        hx-target="#system-prompt-container"
+                                        hx-swap="innerHTML"
+                                        hx-indicator="#spin-system"
+                                        class="text-xs flex items-center gap-1.5 text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 px-2.5 py-1.5 rounded transition-all border border-purple-500/20 shadow-sm font-medium">
+                                    <i id="spin-system" class="ph ph-arrows-clockwise text-sm htmx-indicator-spin"></i> Regenerate
+                                </button>
+                            </div>
+                            <div id="system-prompt-container">
+                                <textarea name="systemPrompt" required rows="2" class="w-full bg-gray-900 border border-gray-700 text-gray-300 text-sm rounded-md focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none resize-none transition-colors"><%= (activeQA && activeQA.systemPrompt) ? activeQA.systemPrompt : "You are a helpful technical support assistant. Answer the user's question accurately using only the provided HTML context." %></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Turns List -->
+                        <div id="turns-list" class="space-y-4">
+                            <% if (activeQA && Array.isArray(activeQA.turns) && activeQA.turns.length > 0) { %>
+                                <% for (let i = 0; i < activeQA.turns.length; i += 2) { %>
+                                    <%
+                                        const userTurn      = activeQA.turns[i];
+                                        const assistantTurn = activeQA.turns[i + 1];
+                                        const promptText    = userTurn ? (userTurn.content ?? userTurn.prompt ?? '') : '';
+                                        const answerText    = assistantTurn ? (assistantTurn.content ?? assistantTurn.answer ?? '') : (activeQA.answer || '');
+                                    %>
+                                    <%- include('qa-turn', { 
+                                        turnIndex: (i / 2) + 1, 
+                                        prompt: promptText, 
+                                        answer: answerText 
+                                    }) %>
+                                <% } %>
+                            <% } else { %>
+                                <%- include('qa-turn', { 
+                                    turnIndex: 1, 
+                                    prompt: activeQA ? activeQA.prompt : '', 
+                                    answer: activeQA ? activeQA.answer : '' 
+                                }) %>
+                            <% } %>
+                        </div>
+                        
+                        <!-- Add Follow Up Button with HTMX -->
+                        <button type="button"
+                                hx-get="/api/qa/add-turn"
+                                hx-vals='js:{index: document.querySelectorAll("#turns-list .qa-turn-block").length + 1}'
+                                hx-target="#turns-list"
+                                hx-swap="beforeend"
+                                class="w-full py-3.5 border-2 border-dashed border-gray-700 text-gray-400 rounded-lg hover:border-brand-500 hover:text-brand-400 bg-gray-800/30 hover:bg-gray-800/80 transition-all text-sm flex justify-center items-center gap-2 font-medium mt-4">
+                            <i class="ph ph-plus-circle text-lg"></i> Add Follow-up Question
+                        </button>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div class="pt-4 border-t border-gray-800 flex justify-end gap-3 mt-auto shrink-0 bg-gray-900">
+                        <button type="button" onclick="document.getElementById('qa-form').reset()" class="px-4 py-2.5 text-sm font-medium text-gray-300 bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 hover:text-white transition-colors">
+                            Clear Form
+                        </button>
+                        <button type="submit" class="px-5 py-2.5 text-sm font-medium text-white <%= isAdminUser ? 'bg-emerald-600 hover:bg-emerald-500 focus:ring-emerald-500/50 shadow-emerald-600/20' : 'bg-brand-600 hover:bg-brand-500 focus:ring-brand-500/50 shadow-brand-500/20' %> rounded-lg focus:ring-4 focus:outline-none shadow-lg transition-all flex items-center gap-2">
+                            <i class="ph <%= isAdminUser ? 'ph-check-circle' : 'ph-paper-plane-right' %>"></i>
+                            <%= isAdminUser ? 'Approve & Finalize' : 'Submit for Approval' %>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

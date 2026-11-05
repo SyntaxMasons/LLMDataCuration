@@ -1,0 +1,182 @@
+<!-- Admin View Partial -->
+<div class="h-full fade-in">
+    <div class="flex h-full">
+        
+        <!-- Admin Sidebar -->
+        <div class="w-64 bg-gray-900 border-r border-gray-800 flex flex-col flex-shrink-0">
+            <div class="p-5 border-b border-gray-800">
+                <h2 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                    <i class="ph ph-sliders"></i> Admin Controls
+                </h2>
+            </div>
+            <div class="p-3 flex-1 space-y-1">
+                <button onclick="switchAdminSubtab('admin-approval-section', this)" class="admin-nav-btn w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg bg-brand-500/10 text-brand-400 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-check-square-offset text-lg"></i> Approval Queue
+                    </div>
+                    <span class="px-2 py-0.5 text-xs rounded-full bg-amber-500/20 text-amber-400 font-semibold border border-amber-500/30">
+                        <%= pendingQAs ? pendingQAs.length : 0 %>
+                    </span>
+                </button>
+                <button onclick="switchAdminSubtab('admin-export-section', this)" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i class="ph ph-export text-lg"></i> Export Data (JSONL)
+                </button>
+                <button onclick="switchAdminSubtab('admin-users-section', this)" class="admin-nav-btn w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
+                    <i class="ph ph-users text-lg"></i> User Management
+                </button>
+            </div>
+            
+            <div class="p-4 border-t border-gray-800 text-xs text-gray-500 flex items-center justify-between">
+                <span>Database: SQLite</span>
+                <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+        </div>
+
+        <!-- Admin Main Content Area -->
+        <div class="flex-1 p-6 lg:p-10 overflow-y-auto bg-[#0b0c10]">
+            <div class="max-w-5xl mx-auto space-y-8">
+                
+                <!-- 1. USER MANAGEMENT SUB-VIEW -->
+                <div id="admin-users-section" class="admin-section hidden space-y-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">User Management</h2>
+                        <p class="text-gray-400 text-sm mt-1">Add, remove, and manage access levels for your curation team.</p>
+                    </div>
+
+                    <!-- Add New User Card with HTMX -->
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 shadow-sm">
+                        <h3 class="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                            <i class="ph ph-user-plus text-brand-400 text-lg"></i> Create New Account
+                        </h3>
+                        
+                        <form hx-post="/api/admin/users"
+                              hx-target="#user-table-body"
+                              hx-swap="beforeend"
+                              hx-on::after-request="this.reset()"
+                              class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Username</label>
+                                <input type="text" name="username" required placeholder="e.g. data_reviewer_1" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Temporary Password</label>
+                                <input type="password" name="password" required placeholder="••••••••" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-400 mb-1">Authorization Role</label>
+                                <select name="role" class="w-full bg-gray-850 border border-gray-700 text-gray-200 text-sm rounded-lg focus:ring-brand-500 focus:border-brand-500 block p-2.5 outline-none appearance-none cursor-pointer">
+                                    <option value="reviewer">Reviewer</option>
+                                    <option value="admin">Administrator</option>
+                                </select>
+                            </div>
+                            <div>
+                                <button type="submit" class="w-full text-white bg-brand-600 hover:bg-brand-500 font-medium rounded-lg text-sm px-5 py-2.5 text-center transition-all flex justify-center items-center gap-2">
+                                    <i class="ph ph-plus-circle text-lg"></i> Add User
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Existing Users Table -->
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl shadow-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-gray-850">
+                            <h3 class="text-sm font-semibold text-white">Active Accounts (<span id="user-count"><%= users.length %></span>)</h3>
+                        </div>
+                        
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-400">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-900/50 border-b border-gray-800">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 font-medium">User Profile</th>
+                                        <th scope="col" class="px-6 py-3 font-medium">Role / Access</th>
+                                        <th scope="col" class="px-6 py-3 font-medium">Status</th>
+                                        <th scope="col" class="px-6 py-3 font-medium text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="user-table-body" class="divide-y divide-gray-800">
+                                    <% if (users && users.length > 0) { %>
+                                        <% users.forEach(user => { %>
+                                            <%- include('user-row', { user }) %>
+                                        <% }) %>
+                                    <% } %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. APPROVAL QUEUE SUB-VIEW -->
+                <div id="admin-approval-section" class="admin-section space-y-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-2xl font-bold text-white">Approval &amp; Review</h2>
+                            <p class="text-gray-400 text-sm mt-1">Review submitted Q&amp;A pairs here — edit questions/answers, regenerate with AI, add notes, delete, reject, or approve to finalize.</p>
+                        </div>
+                        <a href="/review?tab=reviewer" class="text-xs bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg flex items-center gap-1.5 border border-gray-700">
+                            <i class="ph ph-arrows-left-right"></i> Open Side-by-Side Reviewer
+                        </a>
+                    </div>
+ 
+                    <div id="approval-cards-container" class="space-y-4">
+                        <% if (pendingQAs && pendingQAs.length > 0) { %>
+                            <% pendingQAs.forEach(qa => { %>
+                                <%- include('approval-card', { qa }) %>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center text-gray-500">
+                                <i class="ph ph-check-circle text-4xl text-emerald-500 mb-3 block"></i>
+                                <h3 class="text-lg font-medium text-gray-300">All Caught Up!</h3>
+                                <p class="text-sm mt-1">There are no pending Q&amp;A pairs requiring approval right now.</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+
+                <!-- 3. EXPORT DATA SUB-VIEW -->
+                <div id="admin-export-section" class="admin-section hidden space-y-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">Dataset Fine-Tuning Export</h2>
+                        <p class="text-gray-400 text-sm mt-1">Export approved high-quality Q&A data into standard JSONL format for LLM training.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                            <div class="text-gray-400 text-xs font-medium uppercase">Approved Pairs</div>
+                            <div class="text-3xl font-bold text-emerald-400 mt-2"><%= approvedQAs ? approvedQAs.length : 0 %></div>
+                            <div class="text-[11px] text-gray-500 mt-1">Ready for fine-tuning export</div>
+                        </div>
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                            <div class="text-gray-400 text-xs font-medium uppercase">Pending Review</div>
+                            <div class="text-3xl font-bold text-amber-400 mt-2"><%= pendingQAs ? pendingQAs.length : 0 %></div>
+                            <div class="text-[11px] text-gray-500 mt-1">In approval queue</div>
+                        </div>
+                        <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+                            <div class="text-gray-400 text-xs font-medium uppercase">Total Documents</div>
+                            <div class="text-3xl font-bold text-brand-400 mt-2"><%= documents ? documents.length : 0 %></div>
+                            <div class="text-[11px] text-gray-500 mt-1">Ingested in database</div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-base font-semibold text-white">JSONL Format Generator</h3>
+                                <p class="text-xs text-gray-400 mt-0.5">Compatible with OpenAI, Llama 3, and Hugging Face SFT format.</p>
+                            </div>
+                            <a href="/api/export/jsonl" download="curated-qa-dataset.jsonl" class="bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm px-5 py-2.5 rounded-lg flex items-center gap-2 shadow-lg shadow-brand-500/20 transition-all">
+                                <i class="ph ph-download-simple text-lg"></i> Download .JSONL
+                            </a>
+                        </div>
+
+                        <!-- Preview Area -->
+                        <div class="mt-4">
+                            <label class="block text-xs font-medium text-gray-400 mb-2">Live JSONL Output Preview:</label>
+                            <pre class="bg-gray-950 border border-gray-800 rounded-lg p-4 text-xs font-mono text-emerald-400/90 overflow-x-auto max-h-60 leading-relaxed"><%= jsonlPreview || 'No approved pairs yet. Approve pairs in the queue to preview JSONL dataset export.' %></pre>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>

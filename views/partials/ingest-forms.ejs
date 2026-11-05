@@ -1,0 +1,53 @@
+<!-- Shared ingest forms: fetch a URL or paste raw HTML -->
+<div class="space-y-4">
+    <div>
+        <h4 class="text-xs font-bold uppercase tracking-wider text-gray-300 flex items-center gap-1 mb-2">
+            <i class="ph ph-cloud-arrow-down"></i> Add a Knowledge Base Page
+        </h4>
+    </div>
+
+    <!-- Fetch a page from a URL -->
+    <form hx-post="/api/documents/fetch-url"
+          hx-target="#toast-container"
+          hx-swap="beforeend"
+          hx-indicator="#url-fetch-spinner"
+          class="space-y-2">
+        <label class="block text-[11px] font-semibold uppercase tracking-wider text-gray-400">Load from URL</label>
+        <div class="flex gap-2">
+            <input type="url" name="url" required
+                   placeholder="https://docs.example.com/kb-page"
+                   class="flex-1 bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 outline-none focus:border-brand-500">
+            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-3 py-1.5 rounded flex items-center gap-1.5 whitespace-nowrap">
+                <i id="url-fetch-spinner" class="ph ph-circle-notch htmx-indicator-spin"></i> Fetch Page
+            </button>
+        </div>
+        <div>
+            <label for="url-title" class="block text-[11px] font-semibold uppercase tracking-wider text-gray-400 mb-1">
+                Page Title <span class="text-gray-600 normal-case tracking-normal font-normal">(optional)</span>
+            </label>
+            <input type="text" id="url-title" name="title" maxlength="200"
+                   placeholder="Leave blank to auto-detect the title from the page"
+                   class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 outline-none focus:border-brand-500">
+        </div>
+        <p class="text-[11px] text-gray-500">The page is fetched server-side, cleaned, and added as a new document. If no title is entered, it is read from the page's <code class="text-gray-400">&lt;title&gt;</code>.</p>
+    </form>
+
+    <div class="flex items-center gap-2 text-[11px] text-gray-500">
+        <div class="h-px flex-1 bg-gray-800"></div>
+        <span>or paste raw HTML</span>
+        <div class="h-px flex-1 bg-gray-800"></div>
+    </div>
+
+    <!-- Paste raw HTML -->
+    <form action="/api/documents/ingest" method="POST" class="space-y-2">
+        <div>
+            <input type="text" name="filename" required placeholder="e.g. cloud_security_kb.html" class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 outline-none">
+        </div>
+        <div>
+            <textarea name="rawHtml" required rows="3" placeholder="Paste raw HTML snippet here..." class="w-full bg-gray-900 border border-gray-700 text-gray-200 text-xs rounded p-2 outline-none"></textarea>
+        </div>
+        <div class="flex justify-end gap-2">
+            <button type="submit" class="bg-brand-600 hover:bg-brand-500 text-white text-xs px-3 py-1 rounded">Save &amp; Ingest</button>
+        </div>
+    </form>
+</div>

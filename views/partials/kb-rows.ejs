@@ -1,0 +1,70 @@
+<%
+    const statusOf = (doc) => (doc.latestQAStatus || doc.status || 'needs_extraction');
+    const statusStyles = {
+        approved:          'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        pending_approval:  'bg-amber-500/15 text-amber-400 border-amber-500/30',
+        rejected:          'bg-red-500/15 text-red-400 border-red-500/30',
+        draft:             'bg-sky-500/15 text-sky-400 border-sky-500/30',
+        extracted:         'bg-indigo-500/15 text-indigo-300 border-indigo-500/30',
+        needs_extraction:  'bg-amber-500/15 text-amber-400 border-amber-500/30'
+    };
+%>
+<% if (!documents || documents.length === 0) { %>
+    <tr id="kb-empty-row">
+        <td colspan="6" class="px-5 py-14 text-center">
+            <i class="ph ph-folder-open text-4xl text-gray-600 block mb-3"></i>
+            <p class="text-gray-400 text-sm font-medium">No knowledge bases yet</p>
+            <p class="text-gray-600 text-xs mt-1">Use <strong class="text-gray-400">Ingest New</strong> above to add your first KB page.</p>
+        </td>
+    </tr>
+<% } else { %>
+    <% documents.forEach(doc => { %>
+        <% const status = statusOf(doc); %>
+        <tr id="doc-row-<%= doc.id %>" class="border-b border-gray-800/70 hover:bg-gray-850/70 transition-colors">
+            <td class="px-4 py-3 text-center">
+                <input type="checkbox" class="kb-select accent-brand-500 w-4 h-4 cursor-pointer" value="<%= doc.id %>" aria-label="Select <%= doc.filename %>">
+            </td>
+            <td class="px-4 py-3 text-xs font-mono text-gray-500 whitespace-nowrap">#<%= doc.id %></td>
+            <td class="px-4 py-3">
+                <div class="flex items-center gap-2 min-w-0">
+                    <i class="ph ph-file-html text-brand-400 text-lg shrink-0"></i>
+                    <div class="min-w-0">
+                        <div class="text-sm text-gray-200 font-medium truncate max-w-[14rem]" title="<%= doc.filename %>"><%= doc.filename %></div>
+                        <div class="text-[10px] text-gray-600 uppercase tracking-wider">HTML file</div>
+                    </div>
+                </div>
+            </td>
+            <td class="px-4 py-3">
+                <%- include('kb-title', { doc }) %>
+            </td>
+            <td class="px-4 py-3 text-xs text-gray-300 whitespace-nowrap">
+                <span class="inline-flex items-center gap-1.5">
+                    <i class="ph ph-user-circle text-gray-500 text-base"></i>
+                    <%= doc.creator ? doc.creator.username : 'Unknown' %>
+                </span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border <%= statusStyles[status] || 'bg-gray-700/30 text-gray-400 border-gray-700' %>">
+                    <%= status.replace(/_/g, ' ') %>
+                </span>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap text-right">
+                <div class="flex items-center justify-end gap-1.5">
+                    <a href="/review?docId=<%= doc.id %>" title="Open in Review Queue"
+                       class="inline-flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/20 px-2.5 py-1.5 rounded transition-colors">
+                        <i class="ph ph-arrow-square-out"></i> Open
+                    </a>
+                    <button type="button"
+                            hx-delete="/api/documents/<%= doc.id %>"
+                            hx-target="#kb-table-body"
+                            hx-swap="innerHTML"
+                            hx-confirm="Delete &quot;<%= doc.filename %>&quot; and all of its Q&amp;A pairs? This cannot be undone."
+                            title="Delete knowledge base"
+                            class="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1.5 rounded transition-colors">
+                        <i class="ph ph-trash"></i> Delete
+                    </button>
+                </div>
+            </td>
+        </tr>
+    <% }) %>
+<% } %>
