@@ -1,11 +1,8 @@
 /**
- * AI Generation Service Module (ai.mjs)
+ * AI Generation Service Module (ai.mjs) 
  * Generates and regenerates Q&A data through an OpenAI-compatible
  * chat-completions API (vLLM). Configuration lives in .env:
  *
- *   LLM_BASE_URL=https://vllm.stagingk3s.txcontact.com/v1
- *   LLM_API_KEY=sk-...
- *   LLM_MODEL=Qwen/Qwen2.5-Coder-7B-Instruct-AWQ
  */
 import 'dotenv/config';
 
