@@ -1,13 +1,15 @@
 import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
+import connectSqlite3 from 'connect-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import net from 'net';
 import dns from 'dns/promises';
 import sanitizeHtml from 'sanitize-html';
 import { fileURLToPath } from 'url';
 
-import { sequelize, User, Document, QAPair, initDatabase, hashPassword, verifyPassword } from './db.mjs';
+import { sequelize, User, Document, QAPair, initDatabase, hashPassword, verifyPassword, DB_PATH } from './db.mjs';
 import { generateQAPair, regenerateAnswer, regenerateQuestion, regenerateSystemPrompt, rewriteAnswer, rewriteQuestion, exportToJSONL } from './ai.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -21,13 +23,41 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// ─── Session Store ────────────────────────────────────────────────────────────
+// Persist sessions in SQLite next to the main database instead of using
+// express-session's in-memory store (which leaks memory and logs a production
+// warning). Keeps users signed in across container restarts.
+const SESSION_DB_NAME = process.env.SESSION_DB_NAME || 'sessions.sqlite';
+const SESSION_DIR = process.env.SESSION_DB_DIR
+  || (DB_PATH !== ':memory:' ? path.dirname(DB_PATH) : __dirname);
+try {
+  fs.mkdirSync(SESSION_DIR, { recursive: true });
+  fs.accessSync(SESSION_DIR, fs.constants.W_OK);
+} catch (err) {
+  const uid = typeof process.getuid === 'function' ? process.getuid() : 'n/a';
+  throw new Error(
+    `Session directory "${SESSION_DIR}" is not writable (running as uid ${uid}): ${err.message}. ` +
+    'Mount a writable volume at that directory and make sure it is owned by the container user.'
+  );
+}
+
+const SQLiteStore = connectSqlite3(session);
+const sessionStore = new SQLiteStore({
+  db:           SESSION_DB_NAME,
+  dir:          SESSION_DIR,
+  table:        'sessions',
+  concurrentDB: true
+});
+
 // ─── Session Middleware ───────────────────────────────────────────────────────
 app.use(session({
+  store:             sessionStore,
   secret:            process.env.SESSION_SECRET || 'nexus-curate-fallback-secret',
   resave:            false,
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
+    sameSite: 'lax',
     maxAge:   8 * 60 * 60 * 1000   // 8 hours
   }
 }));
@@ -995,16 +1025,38 @@ app.post('/api/documents/delete-selected', requireAuth, async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 // SERVER BOOT
 // ═══════════════════════════════════════════════════════════════════════════════
+function assertDataDirWritable() {
+  if (DB_PATH === ':memory:') return;
+
+  const dir = path.dirname(DB_PATH);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    fs.accessSync(dir, fs.constants.W_OK);
+    if (fs.existsSync(DB_PATH)) {
+      fs.accessSync(DB_PATH, fs.constants.R_OK | fs.constants.W_OK);
+    }
+  } catch (err) {
+    const uid = typeof process.getuid === 'function' ? process.getuid() : 'n/a';
+    throw new Error(
+      `Database directory "${dir}" is not writable (running as uid ${uid}): ${err.message}. ` +
+      'In Kubernetes/Docker, mount a writable volume at that directory and make sure it is ' +
+      'owned by the container user (hostPath volumes need an initContainer to chown it to uid 1000).'
+    );
+  }
+}
+
 async function startServer() {
   try {
+    assertDataDirWritable();
     await sequelize.authenticate();
-    console.log('✓ SQLite connected.');
+    console.log(`✓ SQLite connected (${DB_PATH}).`);
     await initDatabase({ force: false });
     app.listen(PORT, () => {
       console.log(`\n===============================================`);
       console.log(`🚀  LLMDataCuration running on port ${PORT}`);
       console.log(`📍  URL:      http://localhost:${PORT}`);
-      console.log(`💾  Database: SQLite (database.sqlite)`);
+      console.log(`💾  Database: SQLite (${DB_PATH})`);
+      console.log(`🔑  Sessions: SQLite (${path.join(SESSION_DIR, SESSION_DB_NAME)})`);
       console.log(`🔐  Auth:     bcrypt + express-session`);
       console.log(`===============================================\n`);
     });

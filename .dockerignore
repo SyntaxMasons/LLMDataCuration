@@ -10,6 +10,8 @@ logs
 *.log
 database.sqlite
 database.sqlite-*
+sessions.sqlite
+sessions.sqlite-*
 .env
 .env.*
 !.env.example

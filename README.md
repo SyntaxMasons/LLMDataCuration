@@ -1,111 +1,97 @@
-# LLMDataCuration
+# LLM Data Curation
 
-A centralized web application for curating, reviewing, and exporting high-quality AI training datasets from raw HTML knowledge bases.
+**LLM Data Curation** is a lightweight web application designed to turn raw HTML knowledge bases into high-quality, structured training data for Large Language Models (LLMs).
 
 ![Stack](https://img.shields.io/badge/Node.js-18+-green) ![Express](https://img.shields.io/badge/Express-4-blue) ![HTMX](https://img.shields.io/badge/HTMX-1.9-orange) ![SQLite](https://img.shields.io/badge/SQLite-Sequelize-yellow) ![EJS](https://img.shields.io/badge/Templating-EJS-purple)
 
 ---
 
-## Features
 
-- **📥 Ingestion** — Import raw HTML documents into the SQLite database
-- **🤖 AI Generation** — Auto-generate Q&A pairs from HTML context (pluggable LLM backend)
-- **🔍 Reviewer Workflow** — Side-by-side HTML source + Q&A editor with HTMX-powered regeneration
-- **✅ Admin Approval Queue** — Two-tier approval with notes, approve/reject per-pair
-- **📤 JSONL Export** — One-click download of approved data in fine-tuning format
-- **👥 User Management** — Create reviewers and admins, update roles, delete accounts — all via HTMX
+## 💡 Why do we need this?
 
----
+Most company knowledge is trapped in unstructured HTML pages. Before you can train or fine-tune an AI model, you need clean, structured Question-and-Answer (Q&A) pairs. This tool bridges that gap by combining automated AI extraction with human review.
 
-## Tech Stack
+### 🔄 How it works in 3 Steps:
 
-| Layer | Technology |
-|---|---|
-| Runtime | Node.js 18+ (ES Modules `.mjs`) |
-| Web Framework | Express.js 4 |
-| Templating | EJS (server-rendered HTML for HTMX) |
-| Database | SQLite via Sequelize ORM |
-| Frontend | HTMX 1.9 + Tailwind CSS (CDN) |
-| Process Manager | PM2 |
+1. **Automated Extraction:** The tool connects to an LLM, reads your HTML documents, and automatically drafts Q&A pairs.
+2. **Human-in-the-Loop:** Reviewers check the AI's work, edit the text, and submit the best pairs.
+3. **Approval & Export:** Administrators approve the final submissions and export them as a ready-to-train dataset.
 
 ---
 
-## Project Structure
+## ✨ Key Features
 
-```
-LLMDataCuration/
-├── server.mjs              # Express server + all route handlers
-├── db.mjs                  # Sequelize models (User, Document, QAPair)
-├── ai.mjs                  # AI generation service (pluggable LLM module)
-├── ecosystem.config.cjs    # PM2 deployment config
-├── Dockerfile              # Multi-stage production image
-├── .dockerignore
-├── .github/workflows/      # CI: build & push to Docker Hub
-├── package.json
-├── database.sqlite         # Auto-created SQLite file
-├── test-db.mjs             # Database verification script
-└── views/
-    ├── index.ejs           # Main layout & page assembly
-    └── partials/
-        ├── nav.ejs              # Navigation bar
-        ├── reviewer-pane.ejs    # Reviewer split-view
-        ├── admin-view.ejs       # Admin panel (user mgmt, queue, export)
-        ├── qa-turn.ejs          # Multi-turn Q&A block
-        ├── approval-card.ejs    # Admin approval card
-        ├── user-row.ejs         # User table row
-        └── toast.ejs            # Toast notification
-```
+* **📥 Easy Ingestion** — Import raw HTML documents directly into the database.
+* **🤖 AI Auto-Generation** — Automatically generate Q&A pairs using your preferred AI model (OpenAI, vLLM, Ollama, etc.).
+* **🔍 Side-by-Side Review** — A clean split-screen UI showing the HTML source next to the Q&A editor.
+* **✅ Admin Approval Queue** — Two-tier workflow. Admins can approve, reject, or leave notes on submitted data.
+* **📤 Instant JSONL Export** — Download approved data in the standard OpenAI fine-tuning format with one click.
+* **👥 User Management** — Easily add, edit, or remove reviewers and admins directly from the dashboard.
 
 ---
 
-## Getting Started
+## 🚀 Getting Started (Local Development)
 
-### 1. Install Dependencies
+### 1. Install & Run
+
+Make sure you have Node.js (v18+) installed, then run:
 
 ```bash
 npm install
-```
-
-### 2. Start Development Server
-
-```bash
 npm run dev
+
 ```
 
-> The server auto-initializes the SQLite database and seeds default users on first run.
+*Note: The server will automatically create the SQLite database and generate default users on its first run.*
 
-### 3. Open the Dashboard
+### 2. Log In
 
-Navigate to: **http://localhost:3000**
+Open **http://localhost:3000** in your browser and use one of the default accounts:
 
----
-
-## Default Seed Accounts
-
-| Username | Password | Role |
-|---|---|---|
-| `admin_bago` | `password123` | Administrator |
-| `masticn_user` | `password123` | Reviewer |
+| Role | Username | Password |
+| --- | --- | --- |
+| **Administrator** | `admin_bago` | `password123` |
+| **Reviewer** | `masticn_user` | `password123` |
 
 ---
 
-## Core Workflows
+## 🧠 Connecting Your AI (LLM)
 
-### Reviewer Workflow
-1. Log in as a Reviewer
-2. Select or ingest an HTML document from the left pane
-3. Review the AI-drafted Q&A pair in the right pane
-4. Edit and/or click **Regenerate Answer** (HTMX live swap)
-5. Click **Submit for Approval** → pair is saved as `pending_approval`
+The app's `ai.mjs` file can connect to **any OpenAI-compatible API** (like OpenAI, vLLM, LM Studio, or Ollama).
 
-### Admin Workflow
-1. Log in as an Admin
-2. Open **Admin Approval → Approval Queue**
-3. Review submitted Q&A cards, add notes
-4. Click **Approve & Finalize** or **Reject**
-5. Export all approved pairs from **Export Data (JSONL)**
+You don't need to change any code. Just set your environment variables in a `.env` file:
 
-### JSONL Export Format
+```env
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=your_api_key_here
+LLM_MODEL=gpt-4
+LLM_TIMEOUT_MS=60000 
+
+```
+
+*Note: If the AI connection fails during ingestion, the app uses a fallback dummy Q&A pair so your workflow isn't interrupted.*
+
+---
+
+## 🛠️ How to Use the App
+
+### For Reviewers
+
+1. Log in with a Reviewer account.
+2. Select an HTML document from the left pane (or ingest a new one).
+3. Review the AI-generated Q&A pair on the right.
+4. Make edits or click **Regenerate Answer** to get a new AI response.
+5. Click **Submit for Approval**.
+
+### For Administrators
+
+1. Log in with an Admin account.
+2. Go to **Admin Approval → Approval Queue**.
+3. Review submitted Q&A pairs from your team.
+4. Click **Approve & Finalize** or **Reject**.
+5. Once you have enough approved data, click **Export Data (JSONL)** to download your dataset.
+
+**Exported JSONL Format:**
 
 ```json
 {"messages":[
@@ -113,58 +99,23 @@ Navigate to: **http://localhost:3000**
   {"role":"user","content":"Question based on context..."},
   {"role":"assistant","content":"Accurate, distilled answer..."}
 ]}
+
 ```
 
 ---
 
-## API Routes
+## 🐳 Deployment (Docker)
 
-| Method | Route | HTMX Target | Description |
-|---|---|---|---|
-| `GET` | `/` | Full page | Main dashboard |
-| `POST` | `/api/admin/users` | `#user-table-body` | Create new user (returns row partial) |
-| `PUT` | `/api/admin/users/:id/role` | `none` | Update user role |
-| `DELETE` | `/api/admin/users/:id` | `#user-row-:id` | Delete user (returns empty → removes row) |
-| `POST` | `/api/qa/regenerate` | `#answer-container-*` | AI regenerate answer |
-| `GET` | `/api/qa/add-turn` | `#turns-list` | Append new multi-turn block |
-| `POST` | `/api/qa/submit` | `#toast-container` | Submit Q&A for approval |
-| `POST` | `/api/admin/qa/:id/approve` | `#qa-card-:id` | Approve Q&A pair |
-| `POST` | `/api/admin/qa/:id/reject` | `#qa-card-:id` | Reject Q&A pair |
-| `POST` | `/api/documents/fetch-url` | `HX-Redirect` | Fetch a KB page from a URL, sanitize it, and create a document |
-| `POST` | `/api/documents/ingest` | Redirect | Ingest new HTML document |
-| `GET` | `/api/export/jsonl` | Download | Export approved pairs as `.jsonl` |
+Deploying to production is easiest with Docker. The image runs as a secure non-root user and saves your database to a persistent volume.
 
----
-
-## PM2 Deployment
+**Build the image:**
 
 ```bash
-# Start with PM2
-npm run pm2:start
+docker build -t llmdatacuration:1.0.0 .
 
-# View live logs
-npm run pm2:logs
-
-# Restart
-npm run pm2:restart
-
-# Stop
-npm run pm2:stop
 ```
 
----
-
-## Docker
-
-The image runs the app as a non-root `node` user and stores SQLite on a volume at `/app/data` (via the `DB_PATH` environment variable).
-
-### Build locally
-
-```bash
-docker build -t shreyasnayak21/llmdatacuration:1.0.0 .
-```
-
-### Run
+**Run the container:**
 
 ```bash
 docker run -d --name llm-data-curation \
@@ -172,68 +123,46 @@ docker run -d --name llm-data-curation \
   --env-file .env \
   -v llm-data-curation-data:/app/data \
   --restart unless-stopped \
-  shreyasnayak21/llmdatacuration:1.0.0
+  llmdatacuration:1.0.0
+
 ```
 
-Open **http://localhost:3000**. The `.env` file is injected at runtime (`--env-file`), so secrets are never baked into the image. The named volume keeps `database.sqlite` across container recreations.
-
-> Use a single container/replica: sessions are stored in memory, and SQLite is single-writer.
-
-### Push to Docker Hub manually
-
-```bash
-docker login
-
-docker build -t shreyasnayak21/llmdatacuration:1.0.0 .
-
-# Push the version tag
-docker push shreyasnayak21/llmdatacuration:1.0.0
-
-# Optionally also move :latest
-docker tag shreyasnayak21/llmdatacuration:1.0.0 shreyasnayak21/llmdatacuration:latest
-docker push shreyasnayak21/llmdatacuration:latest
-```
-
-### Automated builds with GitHub Actions
-
-Workflow: `.github/workflows/docker-publish.yml`
-
-1. Create a Docker Hub access token: **Docker Hub → Account Settings → Security → New Access Token** with **Read & Write** scope.
-2. In GitHub: **Repository → Settings → Secrets and variables → Actions**, add:
-   - `DOCKERHUB_USERNAME` = `shreyasnayak21`
-   - `DOCKERHUB_TOKEN` = the access token
-3. Push to `main`/`master` → publishes `latest`, the branch name, and a short commit SHA tag.
-4. Publish a version tag:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-That builds and pushes `1.0.0`, `1.0`, `1`, `latest`, and the SHA tag to `shreyasnayak21/llmdatacuration`.
-
-Pull requests build the image without pushing. You can also run the workflow manually (**Actions → Docker Build & Push → Run workflow**); a manual run publishes `latest`, the branch name, and a short SHA tag.
+*Note: Because the app uses SQLite and in-memory sessions, only run a single replica/container at a time.*
 
 ---
 
-## Connecting a Real LLM
+## ⚙️ Technical Details
 
-`ai.mjs` talks to any **OpenAI-compatible** `/chat/completions` endpoint (vLLM, Ollama, LM Studio, OpenAI, …). Configuration lives in `.env` — no code changes are needed:
+### Tech Stack
 
-```env
-LLM_BASE_URL=https://api.openai.com/v1
-LLM_API_KEY=<TOKEN>
-LLM_MODEL=gpt-6-luna
-# Optional request timeout in milliseconds
-LLM_TIMEOUT_MS=60000
-```
+* **Backend:** Node.js 18+, Express.js 4
+* **Database:** SQLite (via Sequelize ORM)
+* **Frontend:** HTMX 1.9, EJS Templates, Tailwind CSS
+* **Process Manager:** PM2
 
-The model must accept the standard chat-completions request body (`model`, `messages`, `temperature`, `max_tokens`) and return `choices[0].message.content`.
-
-To discover the model IDs a server exposes:
+### PM2 Commands (For non-Docker servers)
 
 ```bash
-curl -H "Authorization: Bearer $LLM_API_KEY" "$LLM_BASE_URL/models"
+npm run pm2:start   # Start the app
+npm run pm2:logs    # View live logs
+npm run pm2:restart # Restart the app
+npm run pm2:stop    # Stop the app
+
 ```
 
-If the LLM call fails during ingest, `generateQAPair` falls back to a deterministic canned pair so the reviewer workflow keeps working; failures during **Regenerate Answer** surface as an inline error instead. Check `logs/server.err.log` for `AI generation failed, using fallback`.
+### API Routes Reference
+
+| Method | Route | Description |
+| --- | --- | --- |
+| `GET` | `/` | Main dashboard |
+| `POST` | `/api/admin/users` | Create new user |
+| `PUT` | `/api/admin/users/:id/role` | Update user role |
+| `DELETE` | `/api/admin/users/:id` | Delete user |
+| `POST` | `/api/qa/regenerate` | Ask AI to rewrite the answer |
+| `GET` | `/api/qa/add-turn` | Add a new multi-turn block to the editor |
+| `POST` | `/api/qa/submit` | Submit Q&A pair to the admin queue |
+| `POST` | `/api/admin/qa/:id/approve` | Approve Q&A pair |
+| `POST` | `/api/admin/qa/:id/reject` | Reject Q&A pair |
+| `POST` | `/api/documents/fetch-url` | Scrape URL and save as an HTML document |
+| `POST` | `/api/documents/ingest` | Manually upload/ingest HTML document |
+| `GET` | `/api/export/jsonl` | Download approved pairs as `.jsonl` file |

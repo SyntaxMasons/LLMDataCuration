@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Allow containers/deployments to point the SQLite file at a persistent volume.
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
+export const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'database.sqlite');
 if (DB_PATH !== ':memory:') {
   fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
 }
