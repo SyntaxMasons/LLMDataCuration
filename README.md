@@ -156,9 +156,9 @@ npm run pm2:stop
 `ai.mjs` talks to any **OpenAI-compatible** `/chat/completions` endpoint (vLLM, Ollama, LM Studio, OpenAI, …). Configuration lives in `.env` — no code changes are needed:
 
 ```env
-LLM_BASE_URL=https://vllm.stagingk3s.txcontact.com/v1
-LLM_API_KEY=sk-dummy
-LLM_MODEL=Qwen/Qwen2.5-Coder-7B-Instruct-AWQ
+LLM_BASE_URL=https://api.openai.com/v1
+LLM_API_KEY=<TOKEN>
+LLM_MODEL=gpt-6-luna
 # Optional request timeout in milliseconds
 LLM_TIMEOUT_MS=60000
 ```
