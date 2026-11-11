@@ -108,7 +108,26 @@ LLM_TIMEOUT_MS=60000
 
 Deploying to production is easiest with Docker. The image runs as a secure non-root user and saves your database to a persistent volume.
 
-**Build the image:**
+**Pull the published image from Docker Hub:**
+
+```bash
+docker pull shreyasnayak21/llmdatacuration:latest
+```
+
+**Run it:**
+
+```bash
+docker run -d --name llm-data-curation \
+  -p 3000:3000 \
+  --env-file .env \
+  -v llm-data-curation-data:/app/data \
+  --restart unless-stopped \
+  shreyasnayak21/llmdatacuration:latest
+```
+
+Open **http://localhost:3000**. The `.env` file supplies your LLM key and settings at runtime, and the volume keeps the database across restarts. Replace `latest` with a version tag (e.g. `1.0.0`) to pin a release.
+
+**Or build the image yourself:**
 
 ```bash
 docker build -t llmdatacuration:1.0.0 .
