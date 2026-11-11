@@ -106,12 +106,13 @@ LLM_TIMEOUT_MS=60000
 
 ## 🐳 Deployment (Docker)
 
-Deploying to production is easiest with Docker. The image runs as a secure non-root user (`node`, uid 1000) and keeps the SQLite database and sessions on a persistent volume at `/app/data`.
+Deploying to production is easiest with Docker. The image runs as a secure non-root user and saves your database to a persistent volume.
 
 **Build the image:**
 
 ```bash
-docker build -t shreyasnayak21/llmdatacuration:1.0.0 .
+docker build -t llmdatacuration:1.0.0 .
+
 ```
 
 **Run the container:**
@@ -122,85 +123,11 @@ docker run -d --name llm-data-curation \
   --env-file .env \
   -v llm-data-curation-data:/app/data \
   --restart unless-stopped \
-  shreyasnayak21/llmdatacuration:1.0.0
-```
-
-The `.env` file is injected at runtime, so secrets are never baked into the image. The named volume keeps `database.sqlite` and `sessions.sqlite` across container recreations.
-
-*Note: SQLite is single-writer, so run exactly one container/replica at a time.*
-
-### Push to Docker Hub manually
-
-```bash
-docker login --username shreyasnayak21
-
-docker build -t shreyasnayak21/llmdatacuration:tagname .
-docker push shreyasnayak21/llmdatacuration:tagname
-
-# Optionally also move :latest
-docker tag shreyasnayak21/llmdatacuration:tagname shreyasnayak21/llmdatacuration:latest
-docker push shreyasnayak21/llmdatacuration:latest
-```
-
-Replace `tagname` with a version such as `1.0.0`. `docker push` only uploads tags that exist locally, so the tagged `docker build` step is required.
-
-### Automated builds with GitHub Actions
-
-Workflow: `.github/workflows/docker-publish.yml`
-
-The workflow runs **only when a version tag is pushed** (`v*.*.*`). Pushing ordinary commits or branches does **not** build or push an image.
-
-1. Create a Docker Hub access token: **Docker Hub → Account Settings → Security → New Access Token** with **Read & Write** scope.
-2. In GitHub: **Repository → Settings → Secrets and variables → Actions**, add:
-   - `DOCKERHUB_USERNAME` = `shreyasnayak21`
-   - `DOCKERHUB_TOKEN` = the access token
-3. Publish a release by pushing a tag:
-
-```bash
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-That builds and pushes `1.0.0`, `1.0`, `1`, `latest`, and the short commit SHA to `shreyasnayak21/llmdatacuration`.
-
-### Kubernetes (k3s + Argo CD)
-
-The container runs as uid/gid `1000`. A `hostPath` PV is created as `root:root`, and `fsGroup` does **not** apply to `hostPath` volumes, so the app fails with:
+  llmdatacuration:1.0.0
 
 ```
-SQLITE_CANTOPEN: unable to open database file
-```
 
-Fix ownership with an initContainer before the app starts:
-
-```yaml
-initContainers:
-  - name: fix-data-permissions
-    image: shreyasnayak21/llmdatacuration:latest
-    command: ["sh", "-c", "chown -R 1000:1000 /app/data && chmod -R u+rwX,g+rwX /app/data"]
-    securityContext:
-      runAsUser: 0
-    volumeMounts:
-      - name: data-volume
-        mountPath: /app/data
-```
-
-Required app settings:
-
-```yaml
-env:
-  - name: DB_PATH
-    value: /app/data/database.sqlite
-  - name: SESSION_DB_DIR
-    value: /app/data
-replicas: 1
-strategy:
-  type: Recreate
-```
-
-Mount the PVC at `/app/data` and keep `replicas: 1`. Sessions are stored in `sessions.sqlite` on the same volume, so logins survive pod restarts and the `MemoryStore is not designed for a production environment` warning is gone.
-
-> Store `SESSION_SECRET`, bootstrap passwords, and `LLM_API_KEY` in a Kubernetes `Secret` (or SealedSecret) instead of committing them in the Deployment YAML.
+*Note: Because the app uses SQLite and in-memory sessions, only run a single replica/container at a time.*
 
 ---
 
