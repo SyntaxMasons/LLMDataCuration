@@ -38,6 +38,9 @@ LLMDataCuration/
 ├── db.mjs                  # Sequelize models (User, Document, QAPair)
 ├── ai.mjs                  # AI generation service (pluggable LLM module)
 ├── ecosystem.config.cjs    # PM2 deployment config
+├── Dockerfile              # Multi-stage production image
+├── .dockerignore
+├── .github/workflows/      # CI: build & push to Docker Hub
 ├── package.json
 ├── database.sqlite         # Auto-created SQLite file
 ├── test-db.mjs             # Database verification script
@@ -148,6 +151,68 @@ npm run pm2:restart
 # Stop
 npm run pm2:stop
 ```
+
+---
+
+## Docker
+
+The image runs the app as a non-root `node` user and stores SQLite on a volume at `/app/data` (via the `DB_PATH` environment variable).
+
+### Build locally
+
+```bash
+docker build -t shreyasnayak21/llmdatacuration:1.0.0 .
+```
+
+### Run
+
+```bash
+docker run -d --name llm-data-curation \
+  -p 3000:3000 \
+  --env-file .env \
+  -v llm-data-curation-data:/app/data \
+  --restart unless-stopped \
+  shreyasnayak21/llmdatacuration:1.0.0
+```
+
+Open **http://localhost:3000**. The `.env` file is injected at runtime (`--env-file`), so secrets are never baked into the image. The named volume keeps `database.sqlite` across container recreations.
+
+> Use a single container/replica: sessions are stored in memory, and SQLite is single-writer.
+
+### Push to Docker Hub manually
+
+```bash
+docker login
+
+docker build -t shreyasnayak21/llmdatacuration:1.0.0 .
+
+# Push the version tag
+docker push shreyasnayak21/llmdatacuration:1.0.0
+
+# Optionally also move :latest
+docker tag shreyasnayak21/llmdatacuration:1.0.0 shreyasnayak21/llmdatacuration:latest
+docker push shreyasnayak21/llmdatacuration:latest
+```
+
+### Automated builds with GitHub Actions
+
+Workflow: `.github/workflows/docker-publish.yml`
+
+1. Create a Docker Hub access token: **Docker Hub → Account Settings → Security → New Access Token** with **Read & Write** scope.
+2. In GitHub: **Repository → Settings → Secrets and variables → Actions**, add:
+   - `DOCKERHUB_USERNAME` = `shreyasnayak21`
+   - `DOCKERHUB_TOKEN` = the access token
+3. Push to `main`/`master` → publishes `latest`, the branch name, and a short commit SHA tag.
+4. Publish a version tag:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+That builds and pushes `1.0.0`, `1.0`, `1`, `latest`, and the SHA tag to `shreyasnayak21/llmdatacuration`.
+
+Pull requests build the image without pushing. You can also run the workflow manually (**Actions → Docker Build & Push → Run workflow**); a manual run publishes `latest`, the branch name, and a short SHA tag.
 
 ---
 

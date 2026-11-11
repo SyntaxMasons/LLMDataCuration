@@ -1,0 +1,23 @@
+# Git / tooling
+.git
+.gitignore
+.github
+node_modules
+npm-debug.log*
+
+# Local runtime state
+logs
+*.log
+database.sqlite
+database.sqlite-*
+.env
+.env.*
+!.env.example
+
+# Not needed inside the image
+README.md
+llm_data_curation_dashboard.html
+ecosystem.config.cjs
+test-db.mjs
+Dockerfile
+.dockerignore
