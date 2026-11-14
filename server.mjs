@@ -932,7 +932,7 @@ app.post('/api/documents/ingest', requireAuth, async (req, res) => {
     const doc = await Document.create({
       filename: filename.trim(),
       title:    filename.replace(/\.[^/.]+$/, ''),
-      rawHtml:  rawHtml.trim(),
+      rawHtml: sanitizeHtml(rawHtml.trim(), SANITIZE_OPTIONS),
       status:   'needs_extraction',
       createdById: req.session.user.id
     });
