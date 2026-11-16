@@ -50,8 +50,8 @@ Open **http://localhost:3000** in your browser and use one of the default accoun
 
 | Role | Username | Password |
 | --- | --- | --- |
-| **Administrator** | `admin_bago` | `password123` |
-| **Reviewer** | `masticn_user` | `password123` |
+| **Administrator** | `admin_bago` | `Admin@2026!` |
+| **Reviewer** | `masticn_user` | `Reviewer@2026!` |
 
 ---
 
